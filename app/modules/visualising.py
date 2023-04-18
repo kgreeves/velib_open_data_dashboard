@@ -20,6 +20,8 @@ col_dict = {
     'percent_numbikesavailable' : 'Percent Capacity (%)',
     'percent_mechanical' : 'Percent of Available as Mechanical',
     'percent_ebike' : 'Percent of Available as Electric',
+    'fields.percent_capacity': 'Percent Capacity (%)',
+    'fields.criticality': 'Status',
 }
 
 def col_name_to_text(col_name: str)-> str:

@@ -1,11 +1,23 @@
 import os
-from os import getenv
+import pandas as pd
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import Json, DictCursor
 from app.modules.test_data import test_data
 
 load_dotenv()
+
+
+def connection_postgres():
+    conn = psycopg2.connect(
+        database=os.getenv('PG_DATABASE'),
+        user=os.getenv('PG_USER'),
+        password=os.getenv('PG_PASSWORD'),
+        host=os.getenv('PG_HOST'),
+        port=os.getenv('PG_PORT'),
+    )
+    return conn
+
 
 class VelibAPIResponse:
     def __init__(self, json: dict):
@@ -15,14 +27,8 @@ class VelibAPIResponse:
         self.facet_groups = json['facet_groups']
 
     def records_to_postgres(self):
-        conn = psycopg2.connect(
-            database=os.getenv('PG_DATABASE'),
-            user=os.getenv('PG_USER'),
-            password=os.getenv('PG_PASSWORD'),
-            host=os.getenv('PG_HOST'),
-            port=os.getenv('PG_PORT'),
-        )
 
+        conn = connection_postgres()
         conn.autocommit = True
         cursor = conn.cursor(cursor_factory=DictCursor)
 
@@ -35,7 +41,13 @@ class VelibAPIResponse:
         conn.commit()
         conn.close()
 
+    def get_api_response_from_postgres(
+            self,
+    ) -> pd.DataFrame:
+        conn = connection_postgres()
+        conn.close()
+
 
 response = VelibAPIResponse(test_data)
 
-print(response.records_to_postgres())
+response.records_to_postgres()

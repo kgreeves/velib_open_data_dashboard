@@ -8648,6 +8648,13 @@ a.text-cyan:hover, a.text-cyan:focus {
 a.text-orange:hover, a.text-orange:focus {
   color: #af6100 !important; }
 
+.text-red {
+  color: #f50000 !important; }
+
+a.text-red:hover, a.text-red:focus {
+  color: #af2c00 !important; }
+
+
 .text-purple {
   color: #7460ee !important; }
 
