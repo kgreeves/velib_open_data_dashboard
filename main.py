@@ -9,6 +9,7 @@ from datetime import datetime
 import pandas as pd
 
 from app.modules.api_operations import call_api
+from app.modules.postgres_operations import get_latest_bicycle_count
 from app.modules.static_analysis import plot_occupancy, plot_bikes_avail
 
 from fastapi import FastAPI, APIRouter, Query, Request
@@ -48,13 +49,12 @@ search_dict = {
     'rows': -1,
     'facet': ['name', 'capacity', 'is_installed', 'is_renting', 'is_returning', 'nom_arrondissement_communes']
 }
-
 app = FastAPI(
     title="Velib' Dashboard and Bayesian Analyses", openapi_url="/openapi.json"
 )
 
 # MacOS
-'''
+
 app.mount(
     "/app/static",
     StaticFiles(directory=str(str(Path(__file__).parent.absolute()))+"/app/static", html=True),
@@ -70,7 +70,7 @@ app.mount(
     name="static",
 )
 templates = Jinja2Templates(directory=str(Path(__file__).parent.absolute())+"\\app\\templates")
-
+'''
 
 api_router = APIRouter()
 
@@ -103,7 +103,8 @@ async def root(request: Request):
 @api_router.get("/api_response_statistics", status_code=200)
 async def root(request: Request):
 
-    current_payload = call_api(BASE_URL, search_dict)
+    #current_payload = call_api(BASE_URL, search_dict)
+    current_payload = get_latest_bicycle_count()
 
     current_payload['fields.percent_capacity'] = (
         current_payload['fields.numbikesavailable']/current_payload['fields.capacity']
@@ -185,7 +186,7 @@ app.mount("/dash", WSGIMiddleware(dash_app.server))
 
 if __name__ == '__main__':
     import uvicorn
-    uvicorn.run(app, host="localhost", port=8001, log_level="debug")
+    uvicorn.run(app, host="localhost", port=8002, log_level="debug")
     '''
     r = requests.get(generate_q_url(BASE_URL, search_dict))
     payload = json.loads(r.text)
