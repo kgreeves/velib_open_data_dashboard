@@ -1,4 +1,6 @@
-import numpy
+import datetime
+
+from pathlib import Path
 import requests
 import json
 import pandas as pd
@@ -6,6 +8,13 @@ from app.modules.querying import generate_q_url
 import datetime as dt
 from pytz import timezone
 
+BASE_URL = 'https://opendata.paris.fr/api/records/1.0/search/?'
+search_dict = {
+    'dataset': 'velib-disponibilite-en-temps-reel',
+    'q': '',
+    'rows': -1,
+    'facet': []
+}
 
 def convert_my_iso_8601(iso_8601, tz_info):
     assert iso_8601[-1] == 'Z'
@@ -64,8 +73,42 @@ def call_api(base_url: str, search_dict: dict) -> pd.DataFrame:
                                                     index=payload.index)
 
     payload['fields.duedate'] = payload['fields.duedate'].apply(lambda x: dt.datetime.fromisoformat(x))
-    payload['record_timestamp'] = payload['record_timestamp'].apply(lambda x: dt.datetime.fromisoformat(
-                                                                            x.replace('Z', '+00:00')))
+    payload['record_timestamp'] = payload['record_timestamp'].apply(lambda x: dt.datetime.fromisoformat(x.split('.')[0]+'+00:00'))
+
+    #x.replace('Z', '+00:00')))
+
+    #REFERENCE TO OLD TIMESTEP *** Call from postrgres
+    old_payload = load_payload_to_df('2023-04-19_17.28.51.757980_.json')
+
+    difference_df = (payload[['fields.numbikesavailable','fields.stationcode']]
+                            .merge(old_payload[['fields.numbikesavailable','fields.stationcode']],
+                                   left_on='fields.stationcode',
+                                   right_on='fields.stationcode',
+                                   suffixes=('_new', '_old')))
+
+    payload['difference'] = difference_df['fields.numbikesavailable_new'] - difference_df['fields.numbikesavailable_old']
+    #print(payload[['fields.numbikesavailable','fields.numbikesavailable','difference']])
 
     payload.astype(dtype=dtypes)
     return payload
+
+def save_payload(payload):
+    base=str(Path(__file__).parent.parent.absolute())
+    now_str = (str(datetime.datetime.now()).replace( " ", "_" ).replace( ":", "." ))
+
+    with open(
+            base+f'\\static\\test_data\\{now_str}_.json', 'w') as file:
+        file.write(str(payload.to_json()))
+
+def load_payload_to_df(filename:str):
+    base = str(Path(__file__).parent.parent.absolute())
+    with open(
+            base + f'\\static\\test_data\\{filename}', 'r') as file:
+        payload = file.read()
+
+    return pd.read_json(payload)
+
+save_payload(call_api(BASE_URL,search_dict))
+
+#filename="2023-04-19_15.30.09.772246_.json"
+#loaded_df = load_payload_to_df(filename)

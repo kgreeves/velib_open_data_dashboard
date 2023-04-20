@@ -47,7 +47,7 @@ search_dict = {
     'dataset': 'velib-disponibilite-en-temps-reel',
     'q': '',
     'rows': -1,
-    'facet': ['name', 'capacity', 'is_installed', 'is_renting', 'is_returning', 'nom_arrondissement_communes']
+    'facet': []
 }
 app = FastAPI(
     title="Velib' Dashboard and Bayesian Analyses", openapi_url="/openapi.json"
@@ -103,8 +103,8 @@ async def root(request: Request):
 @api_router.get("/api_response_statistics", status_code=200)
 async def root(request: Request):
 
-    #current_payload = call_api(BASE_URL, search_dict)
-    current_payload = get_latest_bicycle_count()
+    current_payload = call_api(BASE_URL, search_dict)
+    #current_payload = get_latest_bicycle_count()
 
     current_payload['fields.percent_capacity'] = (
         current_payload['fields.numbikesavailable']/current_payload['fields.capacity']
@@ -123,7 +123,7 @@ async def root(request: Request):
     plt.savefig(str(BASE_PATH)+'/app/static/img/percent_capacity.png')
 
     df_timestamp = current_payload['record_timestamp'].iloc[0]
-    df_timestamp = datetime.fromisoformat(df_timestamp.split('.')[0])
+    #df_timestamp = datetime.fromisoformat(df_timestamp.replace('Z', '+00:00'))
 
     current_payload = (
         current_payload
@@ -173,6 +173,17 @@ async def root(request: Request):
                                                     justify='center',
                                                     table_id='capacity-critical')},
     )
+
+
+
+
+@api_router.get("/generate_critcality_table", status_code=200)
+async def root(request: Request):
+    current_payload = call_api(BASE_URL, search_dict)
+    return {"current_payload": current_payload.to_html(index=False,
+                                                       justify='center',
+                                                       table_id='capacity-critical')}
+
 
 app.include_router(api_router)
 

@@ -251,27 +251,20 @@
                         <div class="white-box">
                             <div class="d-md-flex mb-3">
                                 <h3 class="box-title mb-0">Filter Stations : </h3>
-<div class="btn-group btn-group-toggle" data-toggle="buttons">
-  <label class="btn btn-secondary active">
-    <input type="radio" name="options" id="option1" autocomplete="off" checked> Critical (high)
-  </label>
-  <label class="btn btn-secondary">
-    <input type="radio" name="options" id="option2" autocomplete="off"> Attention (high)
-  </label>
-    <label class="btn btn-secondary">
-    <input type="radio" name="options" id="option3" autocomplete="off"> Attention (low)
-  </label>
-  <label class="btn btn-secondary">
-    <input type="radio" name="options" id="option3" autocomplete="off"> Critical (low)
-  </label>
-</div>
+                            </div>
+                            <div class="btn-group" role="group" aria-label="Basic example" style="color:#000000">
+                              <button type="button" class="btn btn-secondary btn-danger" onclick="alertFunction()">Critical (high)</button>
+                              <button type="button" class="btn btn-secondary btn-warning">Attention (high)</button>
+                              <button type="button" class="btn btn-secondary btn-success">Normal</button>
+                              <button type="button" class="btn btn-secondary btn-warning">Attention (low)</button>
+                              <button type="button" class="btn btn-secondary btn-danger">Critical (low)</button>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-12">
-                        <div class="white-box" style="text-align:center">
+                        <div id="div-criticality" class="white-box" style="text-align:center">
                             {{ current_payload | safe }}
                         </div>
                     </div>
@@ -319,5 +312,12 @@
     <script src="/app/static/js/sidebarmenu.js"></script>
     <!--Custom JavaScript -->
     <script src="/app/static/js/custom.js"></script>
+
+    <script>
+        function alertFunction() {
+
+                document.getElementById("div-criticality").innerHTML = 'New Table' ;
+                }
+    </script>
 
 </body></html>

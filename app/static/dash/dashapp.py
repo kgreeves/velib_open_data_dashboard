@@ -7,7 +7,7 @@ from dash import dcc, html
 
 import flask
 import pandas as pd
-from numpy import round
+from numpy import round, abs
 import plotly.express as px
 
 from app.modules.visualising import col_name_to_text
@@ -39,22 +39,23 @@ def create_dash_app(data_pd:pd.DataFrame, requests_pathname_prefix: str = None) 
                              {"label": "Electric", "value": 'fields.ebike'},
                              {"label": "Percent Capacity", "value": 'percent_numbikesavailable'},
                              {"label": "Percent Mechanical", "value": 'percent_mechanical'},
-                             {"label": "Percent Electric", "value": 'percent_ebike'}],
+                             {"label": "Percent Electric", "value": 'percent_ebike'},
+                             {"label": "Difference (+/-)", "value": 'difference'}],
                          multi=False,
-                         value='fields.numbikesavailable',
+                         value='difference',
                          style={'width': '60%','font': '"Nunito Sans",sans-serif;'}
                          ),
             ], style={'align-items': 'right', 'justify-content': 'right' }),
 
         html.Div(id='output_container', style={'text-align': 'center'}, children=[]),
         html.Br(),
-
+        dcc.Slider(25, 100, value=40, marks=None, id="r_blur"),
         dcc.Checklist(
             id='heatmap-checklist',
             options=[
                 {'label': 'Stations', 'value': 'Stations'},
             ],
-            value=['Stations'],
+            value=[],
             inline=True,
             style={'width': '240px', 'height': '40px',
                    'text-align' : 'center',
@@ -72,9 +73,10 @@ def create_dash_app(data_pd:pd.DataFrame, requests_pathname_prefix: str = None) 
         [Output(component_id='output_container', component_property='children'),
          Output(component_id='velib_heatmap', component_property='figure')],
         [Input(component_id='bike_type', component_property='value'),
-         Input(component_id='heatmap-checklist', component_property='value')]
+         Input(component_id='heatmap-checklist', component_property='value'),
+         Input(component_id='r_blur', component_property='value')]
     )
-    def update_graph(option_slctd, checklist_slctd:list):
+    def update_graph(option_slctd, checklist_slctd:list,r_blur:int):
 
         #container = f'Heatmap for {col_name_to_text(option_slctd)} bikes.'
         container =''
@@ -86,10 +88,15 @@ def create_dash_app(data_pd:pd.DataFrame, requests_pathname_prefix: str = None) 
         if 'percent' in option_slctd:
             z_value = col_name_to_text(option_slctd)
             plot_data[z_value] = round(100.*data_pd['fields.'+str(option_slctd.split('_')[-1])]/data_pd['fields.capacity'],2)
+            plot_data['size'] = abs(round(100.*data_pd['fields.'+str(option_slctd.split('_')[-1])]/data_pd['fields.capacity'],2))
             plot_data.dropna(inplace=True, axis=0)
         else:
             z_value = 'Available Bikes'
             plot_data[z_value] = data_pd[option_slctd]
+            plot_data['size'] = abs(data_pd[option_slctd])
+
+        colour_scale = 'RdBu' if option_slctd == 'difference' else 'Inferno'
+        colour_mid = 0.0 if option_slctd == 'difference' else None
 
         # Plotly Express
         fig = px.density_mapbox(
@@ -99,7 +106,7 @@ def create_dash_app(data_pd:pd.DataFrame, requests_pathname_prefix: str = None) 
             z=z_value,
             hover_name='Station Name',
             mapbox_style='carto-positron',
-            radius=50,
+            radius=r_blur,
             opacity=0.5,
             zoom=10,
             center={
@@ -108,31 +115,41 @@ def create_dash_app(data_pd:pd.DataFrame, requests_pathname_prefix: str = None) 
             },
             title=col_name_to_text(option_slctd),
             width=1050,
-            height=900
+            height=900,
+            color_continuous_scale=colour_scale,
+            color_continuous_midpoint=colour_mid
+        )
+
+
+        fig2 = px.scatter_mapbox(
+            data_frame=plot_data,
+            lat='latitude',
+            lon='longitude',
+            size='size',
+            color=z_value,
+            hover_name='Station Name',
+            mapbox_style='carto-positron',
+            zoom=10,
+            center={
+                'lon': plot_data['longitude'].median(),
+                'lat': plot_data['latitude'].median(),
+            },
+            width=1050,
+            height=900,
+            color_continuous_scale=colour_scale,
+            color_continuous_midpoint=colour_mid
         )
 
         if 'Stations' in checklist_slctd:
-            fig2 = px.scatter_mapbox(
-                data_frame=plot_data,
-                lat='latitude',
-                lon='longitude',
-                size=z_value,
-                color=z_value,
-                hover_name='Station Name',
-                mapbox_style='carto-positron',
-                zoom=10,
-                center={
-                    'lon': plot_data['longitude'].median(),
-                    'lat': plot_data['latitude'].median(),
-                },
-                width=1050,
-                height=900
-            )
-
             trace0 = fig2
             fig.add_trace(trace0.data[0])
-            trace0.layout.update(showlegend=False)
+            trace0.layout.update(showlegend=True)
+        else:
+            fig = fig
+
+
         fig['layout']['uirevision'] = 'some-constant'
+        print(option_slctd,checklist_slctd)
         return container, fig
 
 
